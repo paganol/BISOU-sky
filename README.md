@@ -25,3 +25,23 @@ frequencies = np.arange(60, 2000, 15)
 m = get_sky(frequencies,models,nside)
 m.shape # (130, 196608)
 ```
+
+
+## Parameters
+
+    - ``freqs``: array of frequencies of dimension n_freq
+
+    - ``models``: foreground to use in pysm3 jargon
+
+    - ``nside``: healpix resolution of the maps generated
+
+    - ``fwhm_deg``: Gaussian smoothing in deg (default: 1 degree)
+
+    - ``add_cmb_monopole_and_dipole``: add CMB monopole and dipole
+
+    - ``add_cib_monopole_and_dipole``: add CIB monopole and dipole
+
+    - ``maps_in_ecliptic``: maps in eclipitc coordinates
+
+    It returns a 2d array (n_freq,npix) containing the skies for each freqs
+
