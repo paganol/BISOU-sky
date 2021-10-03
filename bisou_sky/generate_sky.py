@@ -55,12 +55,35 @@ def get_sky(
     fwhm_deg=1.0,
     add_cmb_monopole_and_dipole=True,
     add_cib_monopole_and_dipole=True,
-    rotate_to_ecliptic=False,
+    maps_in_ecliptic=False,
 ):
+
+    """
+
+    Args:
+
+    - ``freqs``: array of frequencies of dimension n_freq
+
+    - ``models``: foreground to use in pysm3 jargon
+
+    - ``nside``: healpix resolution of the maps generated
+
+    - ``fwhm_deg``: Gaussian smoothing in deg (default: 1 degree)
+
+    - ``add_cmb_monopole_and_dipole``: add CMB monopole and dipole
+
+    - ``add_cib_monopole_and_dipole``: add CIB monopole and dipole
+
+    - ``maps_in_ecliptic``: maps in eclipitc coordinates
+
+    It returns a 2d array (n_freq,npix) containing the skies for each freqs
+
+    """
+
     sky = pysm3.Sky(nside=nside, preset_strings=models, output_unit="MJy/sr")
     npix = hp.nside2npix(nside)
     m = np.zeros((len(freqs), npix))
-    if rotate_to_ecliptic:
+    if maps_in_ecliptic:
         r = hp.Rotator(coord=["G", "E"])
     for ifreq, freq in enumerate(freqs):
         m[ifreq] = sky.get_emission(freq * u.GHz)[0]
@@ -79,6 +102,6 @@ def get_sky(
                 DIPOLE_DIRECTION,
                 nside,
             )
-        if rotate_to_ecliptic:
+        if maps_in_ecliptic:
             m[ifreq] = r.rotate_map_pixel(m[ifreq])
     return m
