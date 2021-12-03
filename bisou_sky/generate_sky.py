@@ -49,6 +49,12 @@ def monopole_and_dipole_CIB(nu, acib, betacib, tcib, beta_sun, dipole_direction,
     return boostedCIB
 
 
+def extragalactic_CO(nu,aco,template='data/extragalactic_co_template.txt')
+    freqs, signal = np.loadtxt(template,unpack=True)
+    f = np.interpolate.interp1d(np.log(freqs), np.log(signal), bounds_error=False, fill_value="extrapolate") 
+    return aco * np.exp(f(nu))
+
+
 def deltaI_y_distortions(nu, y, tcmb):
     x = h.value / k_B.value / tcmb * 1e9 * nu
     I0 = 2.0 * h.value / c.value / c.value * (k_B.value * tcmb / h.value)**3 * 1e20
@@ -125,6 +131,7 @@ def get_sky(
     y_distortions: Union[float, None]=1e-6,
     t_e_sz: Union[float, None]=1.24,
     mu_distortions: Union[float, None]=1e-8,
+    A_eg_CO: Union[float, None]=1.0,
     maps_in_ecliptic=False,
 ):
 
@@ -187,6 +194,9 @@ def get_sky(
 
         if maps_in_ecliptic:
             m[ifreq] = r.rotate_map_pixel(m[ifreq])
+
+    if A_eg_CO:
+        m += extragalactic_CO(freqs,A_eg_CO)[:, np.newaxis]
 
     if y_distortions:
         m += deltaI_y_distortions(
