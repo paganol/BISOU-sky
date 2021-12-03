@@ -22,7 +22,7 @@ nside = 128
 models = ["c1", "d2", "s1", "a1", "f1"]
 frequencies = np.arange(60, 2000, 15)
 
-m = get_sky(frequencies,models,nside)
+m = get_sky(frequencies,nside,models)
 m.shape # (130, 196608)
 ```
 
