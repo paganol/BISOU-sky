@@ -22,7 +22,7 @@ nside = 128
 models = ["c1", "d2", "s1", "a1", "f1"]
 frequencies = np.arange(60, 2000, 15)
 
-m = get_sky(frequencies,models,nside)
+m = get_sky(frequencies,nside,models)
 m.shape # (130, 196608)
 ```
 
@@ -40,6 +40,10 @@ m.shape # (130, 196608)
     - ``add_cmb_monopole_and_dipole``: add CMB monopole and dipole
 
     - ``add_cib_monopole_and_dipole``: add CIB monopole and dipole
+
+    - ``y_distortions``: add y-type distortions with amplitude y_distortions
+
+    - ``t_e_sz``: electron temperature t_e_sz [in keV] for relativistic corrections 
 
     - ``maps_in_ecliptic``: maps in eclipitc coordinates
 
