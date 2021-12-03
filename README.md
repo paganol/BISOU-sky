@@ -1,8 +1,11 @@
 # BISOU sky
 Generates sky for an array of frequencies using [pysm3](https://pysm3.readthedocs.io).
 
-It includes monopole, dipole, and higher order terms of CMB and CIB
-
+It includes:
+* monopole, dipole, and higher order terms of CMB and CIB
+* foreground emissions as provided by pysm3
+* y distortions plus relativistic corrections
+* mu distortions
 
 ## Installation
 
@@ -44,6 +47,8 @@ m.shape # (130, 196608)
     - ``y_distortions``: add y-type distortions with amplitude y_distortions
 
     - ``t_e_sz``: electron temperature t_e_sz [in keV] for relativistic corrections 
+
+    - ``mu_distortions``: add mu-type distortions with amplitude mu_distortions
 
     - ``maps_in_ecliptic``: maps in eclipitc coordinates
 
