@@ -41,6 +41,10 @@ m.shape # (130, 196608)
 
     - ``add_cib_monopole_and_dipole``: add CIB monopole and dipole
 
+    - ``y_distortions``: add y-type distortions with amplitude y_distortions
+
+    - ``t_e_sz``: electron temperature t_e_sz [in keV] for relativistic corrections 
+
     - ``maps_in_ecliptic``: maps in eclipitc coordinates
 
     It returns a 2d array (n_freq,npix) containing the skies for each freqs
