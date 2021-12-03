@@ -108,6 +108,13 @@ def deltaI_y_distortions_relativistic_corrections(nu, y, tesz, tcmb):
     return I0 * delta_I_over_I
 
 
+def deltaI_mu_distortions(nu, mu, tcmb):
+    x = h.value / k_B.value / tcmb * 1e9 * nu
+    I0 = 2.0 * h.value / c.value / c.value * (k_B.value * tcmb / h.value)**3 * 1e20
+    fac = x**4 * np.exp(x) / (np.exp(x) - 1)**2
+    return I0 * fac * (1 / 2.1923 - 1 / x) * mu
+
+
 def get_sky(
     freqs,
     nside,
@@ -117,6 +124,7 @@ def get_sky(
     add_cib_monopole_and_dipole=True,
     y_distortions: Union[float, None]=1e-6,
     t_e_sz: Union[float, None]=1.24,
+    mu_distortions: Union[float, None]=1e-8,
     maps_in_ecliptic=False,
 ):
 
@@ -139,6 +147,8 @@ def get_sky(
     - ``y_distortions``: add y-type distortions with amplitude y_distortions
 
     - ``t_e_sz``: electron temperature t_e_sz for relativistic corrections in keV
+
+    - ``mu_distortions``: add mu-type distortions with amplitude mu_distortions
 
     - ``maps_in_ecliptic``: maps in eclipitc coordinates
 
@@ -186,5 +196,10 @@ def get_sky(
             m += deltaI_y_distortions_relativistic_corrections(
                 freqs, y_distortions, t_e_sz, T_CMB_K
             )[:, np.newaxis]
+
+    if mu_distortions:
+        m += deltaI_mu_distortions(
+            freqs, mu_distortions, T_CMB_K,
+        )[:, np.newaxis]
 
     return m
