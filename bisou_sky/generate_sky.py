@@ -1,5 +1,6 @@
 import numpy as np
 import healpy as hp
+from scipy import interpolate
 from typing import Union, List
 import pysm3.units as u
 import pysm3
@@ -49,9 +50,10 @@ def monopole_and_dipole_CIB(nu, acib, betacib, tcib, beta_sun, dipole_direction,
     return boostedCIB
 
 
-def extragalactic_CO(nu,aco,template='data/extragalactic_co_template.txt')
+def extragalactic_CO(nu,aco,template='data/extragalactic_co_template.txt'):
     freqs, signal = np.loadtxt(template,unpack=True)
-    f = np.interpolate.interp1d(np.log(freqs), np.log(signal), bounds_error=False, fill_value="extrapolate") 
+    f = interpolate.interp1d(np.log(freqs), np.log(signal),
+        kind="cubic", bounds_error=False, fill_value="extrapolate") 
     return aco * np.exp(f(nu))
 
 
@@ -156,6 +158,8 @@ def get_sky(
     - ``t_e_sz``: electron temperature t_e_sz for relativistic corrections in keV
 
     - ``mu_distortions``: add mu-type distortions with amplitude mu_distortions
+
+    - ``A_eg_CO``: add extragalactic CO signal with amplitude A_eg_CO
 
     - ``maps_in_ecliptic``: maps in eclipitc coordinates
 
