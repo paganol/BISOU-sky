@@ -50,6 +50,8 @@ m.shape # (130, 196608)
 
     - ``mu_distortions``: add mu-type distortions with amplitude mu_distortions
 
+    - ``A_eg_CO``: add extragalactic CO signal with amplitude A_eg_CO
+
     - ``maps_in_ecliptic``: maps in eclipitc coordinates
 
     It returns a 2d array (n_freq,npix) containing the skies for each freqs

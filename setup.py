@@ -1,7 +1,7 @@
 from setuptools import find_packages, setup
 
 setup(
-    name="bisou_scan",
+    name="bisou_sky",
     version="0.0",
     description="Generates sky for BISOU",
     zip_safe=False,
@@ -14,4 +14,5 @@ setup(
         "healpy",
         "astropy"
     ],
+    include_package_data=True
 )

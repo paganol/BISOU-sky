@@ -5,6 +5,7 @@ from typing import Union, List
 import pysm3.units as u
 import pysm3
 from astropy.constants import h, c, k_B
+import pkg_resources
 
 import warnings
 
@@ -50,11 +51,14 @@ def monopole_and_dipole_CIB(nu, acib, betacib, tcib, beta_sun, dipole_direction,
     return boostedCIB
 
 
-def extragalactic_CO(nu,aco,template='data/extragalactic_co_template.txt'):
+def extragalactic_CO(nu,aco,template: Union[str, None]=None):
+    if not template:
+        template = pkg_resources.resource_filename('bisou_sky', 'data/extragalactic_co_template.txt')
+
     freqs, signal = np.loadtxt(template,unpack=True)
     f = interpolate.interp1d(np.log(freqs), np.log(signal),
-        kind="cubic", bounds_error=False, fill_value="extrapolate") 
-    return aco * np.exp(f(nu))
+        kind="linear", bounds_error=False, fill_value="extrapolate") 
+    return aco * np.exp(f(np.log(nu)))
 
 
 def deltaI_y_distortions(nu, y, tcmb):
