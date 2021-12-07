@@ -4,6 +4,7 @@ Generates sky for an array of frequencies using [pysm3](https://pysm3.readthedoc
 It includes:
 * monopole, dipole, and higher order terms of CMB and CIB
 * foreground emissions as provided by pysm3
+* extragalactic CO signal
 * y distortions plus relativistic corrections
 * mu distortions
 
