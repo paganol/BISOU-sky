@@ -1,9 +1,11 @@
 import numpy as np
 import healpy as hp
+from scipy import interpolate
 from typing import Union, List
 import pysm3.units as u
 import pysm3
 from astropy.constants import h, c, k_B
+import pkg_resources
 
 import warnings
 
@@ -47,6 +49,16 @@ def monopole_and_dipole_CIB(nu, acib, betacib, tcib, beta_sun, dipole_direction,
         / (gamma * (1 - beta_dot_n)) ** 3
     )
     return boostedCIB
+
+
+def extragalactic_CO(nu,aco,template: Union[str, None]=None):
+    if not template:
+        template = pkg_resources.resource_filename('bisou_sky', 'data/extragalactic_co_template.txt')
+
+    freqs, signal = np.loadtxt(template,unpack=True)
+    f = interpolate.interp1d(np.log(freqs), np.log(signal),
+        kind="linear", bounds_error=False, fill_value="extrapolate") 
+    return aco * np.exp(f(np.log(nu)))
 
 
 def deltaI_y_distortions(nu, y, tcmb):
@@ -108,6 +120,13 @@ def deltaI_y_distortions_relativistic_corrections(nu, y, tesz, tcmb):
     return I0 * delta_I_over_I
 
 
+def deltaI_mu_distortions(nu, mu, tcmb):
+    x = h.value / k_B.value / tcmb * 1e9 * nu
+    I0 = 2.0 * h.value / c.value / c.value * (k_B.value * tcmb / h.value)**3 * 1e20
+    fac = x**4 * np.exp(x) / (np.exp(x) - 1)**2
+    return I0 * fac * (1 / 2.1923 - 1 / x) * mu
+
+
 def get_sky(
     freqs,
     nside,
@@ -117,6 +136,8 @@ def get_sky(
     add_cib_monopole_and_dipole=True,
     y_distortions: Union[float, None]=1e-6,
     t_e_sz: Union[float, None]=1.24,
+    mu_distortions: Union[float, None]=1e-8,
+    A_eg_CO: Union[float, None]=1.0,
     maps_in_ecliptic=False,
 ):
 
@@ -139,6 +160,10 @@ def get_sky(
     - ``y_distortions``: add y-type distortions with amplitude y_distortions
 
     - ``t_e_sz``: electron temperature t_e_sz for relativistic corrections in keV
+
+    - ``mu_distortions``: add mu-type distortions with amplitude mu_distortions
+
+    - ``A_eg_CO``: add extragalactic CO signal with amplitude A_eg_CO
 
     - ``maps_in_ecliptic``: maps in eclipitc coordinates
 
@@ -178,6 +203,9 @@ def get_sky(
         if maps_in_ecliptic:
             m[ifreq] = r.rotate_map_pixel(m[ifreq])
 
+    if A_eg_CO:
+        m += extragalactic_CO(freqs,A_eg_CO)[:, np.newaxis]
+
     if y_distortions:
         m += deltaI_y_distortions(
             freqs, y_distortions, T_CMB_K,
@@ -186,5 +214,10 @@ def get_sky(
             m += deltaI_y_distortions_relativistic_corrections(
                 freqs, y_distortions, t_e_sz, T_CMB_K
             )[:, np.newaxis]
+
+    if mu_distortions:
+        m += deltaI_mu_distortions(
+            freqs, mu_distortions, T_CMB_K,
+        )[:, np.newaxis]
 
     return m
