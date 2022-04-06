@@ -198,7 +198,12 @@ def get_sky(
                 nside,
             )
 
-        m[ifreq] = hp.smoothing(m[ifreq], fwhm=np.deg2rad(fwhm_deg))
+        if fwhm_deg > 0.0:
+            m[ifreq] = hp.smoothing(
+                m[ifreq], 
+                fwhm=np.deg2rad(fwhm_deg),
+                use_pixel_weights=True if nside > 16 else False,
+            )
 
         if maps_in_ecliptic:
             m[ifreq] = r.rotate_map_pixel(m[ifreq])
