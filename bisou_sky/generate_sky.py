@@ -138,7 +138,7 @@ def get_sky(
     t_e_sz: Union[float, None]=1.24,
     mu_distortions: Union[float, None]=1e-8,
     A_eg_CO: Union[float, None]=1.0,
-    maps_in_ecliptic=False,
+    maps_coord="C",
 ):
 
     """
@@ -165,7 +165,7 @@ def get_sky(
 
     - ``A_eg_CO``: add extragalactic CO signal with amplitude A_eg_CO
 
-    - ``maps_in_ecliptic``: maps in eclipitc coordinates
+    - ``maps_coord``: coordinates of the output maps. Default celestial coordinates
 
     It returns a 2d array (n_freq,npix) containing the skies for each freqs
 
@@ -177,8 +177,8 @@ def get_sky(
     npix = hp.nside2npix(nside)
     m = np.zeros((len(freqs), npix))
 
-    if maps_in_ecliptic:
-        r = hp.Rotator(coord=["G", "E"])
+    if maps_coord != "G":
+        r = hp.Rotator(coord=["G", maps_coord])
 
     for ifreq, freq in enumerate(freqs):
         if models:
@@ -205,7 +205,7 @@ def get_sky(
                 use_pixel_weights=True if nside > 16 else False,
             )
 
-        if maps_in_ecliptic:
+        if maps_coord != "G":
             m[ifreq] = r.rotate_map_pixel(m[ifreq])
 
     if A_eg_CO:
