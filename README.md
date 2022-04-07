@@ -53,7 +53,7 @@ m.shape # (130, 196608)
 
     - ``A_eg_CO``: add extragalactic CO signal with amplitude A_eg_CO
 
-    - ``maps_in_ecliptic``: maps in eclipitc coordinates
+    - ``maps_coord``: coordinates of the output maps. Default celestial coordinates 
 
     It returns a 2d array (n_freq,npix) containing the skies for each freqs
 
