@@ -1,0 +1,25 @@
+[build-system]
+requires = ["setuptools>=61.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "bisou_sky"
+version = "0.0"
+description = "Generates sky for BISOU"
+readme = "README.md"  # Highly recommended to have a README
+requires-python = ">=3.12"
+dependencies = [
+    "numpy",
+    "scipy",
+    "pysm3",
+    "healpy",
+    "astropy"
+]
+
+# This replaces 'include_package_data=True'
+[tool.setuptools]
+include-package-data = true
+
+# This replaces 'packages=find_packages()'
+[tool.setuptools.packages.find]
+where = ["."]
