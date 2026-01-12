@@ -1,5 +1,5 @@
 import warnings
-from typing import List, Union, Optional
+from typing import List, Union, Optional, Dict
 from importlib.resources import files, as_file
 
 import numpy as np
@@ -9,23 +9,76 @@ import pysm3.units as u
 from scipy import interpolate
 from astropy.constants import h, c, k_B
 
-# Constants
+# -----------------------------------------------------------------------------
+# CONSTANTS
+# -----------------------------------------------------------------------------
+
+# CMB
 # http://dx.doi.org/10.1088/0004-637X/707/2/916
-T_CMB_K = 2.72549 
+T_CMB_K = 2.72549
 
-# http://iopscience.iop.org/article/10.1086/306383/pdf
-A_CIB = 1.3e-5
-SPECTRAL_INDEX_CIB = 0.64
-T_CIB_K = 18.5
-NU0_CIB = 3000.0
+# CIB Reference Frequency
+NU0_CIB = 3000.0  # GHz
 
+# Solar Dipole
 DIPOLE_DIRECTION = hp.ang2vec(np.deg2rad(90.0 - 48.253), np.deg2rad(264.021))
 BETA_SUN = 369816.0 / c.value
 
+# -----------------------------------------------------------------------------
+# HELPER FUNCTIONS
+# -----------------------------------------------------------------------------
 
 def planck(nu, tcmb):
+    """
+    Calculates the blackbody spectral radiance B_nu(T).
+    Returns: Spectral radiance in MJy/sr
+    """
+    # x = h*nu / k*T
     x = h.value / k_B.value / tcmb * 1e9 * nu
     return 2.0 * h.value * nu ** 3 * 1e27 / c.value / c.value / (np.exp(x) - 1) * 1e20
+
+
+def CIB(nu, acib=None, betacib=None, tcib=None, model='fixsen'):
+    """
+    Calculates CIB emission for various models.
+    Defaults for A, Beta, and T are handled explicitly inside each model block.
+    """
+    model = model.lower()
+
+    # Helper: Dimensionless frequency x = h*nu / k*T
+    def get_x(freq_ghz, temp):
+        return h.value * (freq_ghz * 1e9) / (k_B.value * temp)
+
+    if model == 'fixsen':
+        # Defaults for Fixsen
+        _acib = 1.3e-05 if acib is None else acib
+        _betacib = 0.64 if betacib is None else betacib
+        _tcib = 18.5 if tcib is None else tcib
+        
+        # Formula: A * (nu/nu0)^beta * B_nu(T)
+        return _acib * (nu / NU0_CIB)**_betacib * planck(nu, _tcib)
+
+    elif model == 'abitbol':
+        # Defaults for Abitbol
+        _acib = 0.346 if acib is None else acib
+        _betacib = 0.86 if betacib is None else betacib
+        _tcib = 18.8 if tcib is None else tcib
+        
+        # Formula: A * x^beta * x^3 / (e^x - 1)
+        x = get_x(nu, _tcib)
+        return _acib * x**_betacib * x**3 / (np.exp(x) - 1)
+
+    elif model == 'gispert':
+        # Defaults for Gispert
+        _acib = 8.8e-05 if acib is None else acib
+        _betacib = 1.4 if betacib is None else betacib
+        _tcib = 13.6 if tcib is None else tcib
+        
+        # Formula: A * (nu/nu0)^beta * B_nu(T)
+        return _acib * (nu / NU0_CIB)**_betacib * planck(nu, _tcib)
+    
+    else:
+        raise ValueError(f"Unknown CIB model: {model}")
 
 
 def monopole_and_dipole_CMB(nu, tcmb, beta_sun, dipole_direction, nside):
@@ -35,28 +88,27 @@ def monopole_and_dipole_CMB(nu, tcmb, beta_sun, dipole_direction, nside):
     return planck(nu, tcmb / gamma / (1 - beta_dot_n))
 
 
-def CIB(nu, acib, betacib, tcib):
-    return acib * (nu / NU0_CIB) ** betacib * planck(nu, tcib)
-
-
-def monopole_and_dipole_CIB(nu, acib, betacib, tcib, beta_sun, dipole_direction, nside):
+def monopole_and_dipole_CIB(nu, beta_sun, dipole_direction, nside, 
+                            acib=None, betacib=None, tcib=None, model='fixsen'):
+    """
+    Computes boosted CIB monopole and dipole.
+    """
     npix = hp.nside2npix(nside)
     beta_dot_n = beta_sun * np.dot(dipole_direction, hp.pix2vec(nside, np.arange(npix)))
     gamma = 1 / np.sqrt(1 - beta_sun ** 2)
-    boostedCIB = (
-        CIB(nu * gamma * (1 - beta_dot_n), acib, betacib, tcib)
-        / (gamma * (1 - beta_dot_n)) ** 3
-    )
-    return boostedCIB
+    
+    # Doppler shifted Frequency
+    nu_boosted = nu * gamma * (1 - beta_dot_n)
+    
+    # Calculate Rest Frame CIB at Boosted Frequency
+    cib_val = CIB(nu_boosted, acib=acib, betacib=betacib, tcib=tcib, model=model)
+    
+    # Apply intensity boost: I / (gamma * (1 - beta*n))^3
+    return cib_val / (gamma * (1 - beta_dot_n)) ** 3
 
 
 def extragalactic_CO(nu, aco, template: Optional[str] = None):
-    """
-    Computes extragalactic CO signal.
-    Uses importlib.resources to find the default template safely.
-    """
     if not template:
-        # Modern replacement for pkg_resources using importlib
         ref = files("bisou_sky").joinpath("data/extragalactic_co_template.txt")
         with as_file(ref) as template_path:
             freqs, signal = np.loadtxt(template_path, unpack=True)
@@ -81,9 +133,6 @@ def deltaI_y_distortions(nu, y, tcmb):
 
 
 def deltaI_y_distortions_relativistic_corrections(nu, y, tesz, tcmb):
-    # eq. 2.25 of Naoki Itoh, Yasuharu Kohyama, and Satoshi Nozawa
-    # Relativistic Corrections to the Sunyaev-Zeldovich Effect for Clusters of Galaxies
-    # https://iopscience.iop.org/article/10.1086/305876
     x = h.value / k_B.value / tcmb * 1e9 * nu
     I0 = 2.0 * h.value / c.value / c.value * (k_B.value * tcmb / h.value) ** 3 * 1e20
     thetae = tesz / 510.998950
@@ -136,13 +185,20 @@ def deltaI_mu_distortions(nu, mu, tcmb):
     return I0 * fac * (1 / 2.1923 - 1 / x) * mu
 
 
+# -----------------------------------------------------------------------------
+# MAIN GENERATOR
+# -----------------------------------------------------------------------------
+
 def get_sky(
     freqs,
     nside,
-    models: Optional[List[str]] = ["c1", "d2", "s1", "a1", "f1"],
+    models: Optional[List[str]] = None,
     fwhm_deg: float = 1.0,
     add_cmb_monopole_and_dipole: bool = True,
     add_cib_monopole_and_dipole: bool = True,
+    cib_model: str = 'fixsen',
+    A_cib: Optional[float] = None,
+    cib_params: Optional[Dict[str, float]] = None,
     y_distortions: Optional[float] = 1e-6,
     t_e_sz: Optional[float] = 1.24,
     mu_distortions: Optional[float] = 1e-8,
@@ -157,17 +213,29 @@ def get_sky(
     - ``fwhm_deg``: Gaussian smoothing in deg (default: 1 degree)
     - ``add_cmb_monopole_and_dipole``: add CMB monopole and dipole
     - ``add_cib_monopole_and_dipole``: add CIB monopole and dipole
+    - ``cib_model``: CIB model name ('fixsen', 'abitbol', 'gispert')
+    - ``A_cib``: CIB amplitude override (default: None, uses model default)
+    - ``cib_params``: Dictionary with 'beta' and 'T' to override CIB model defaults
     - ``y_distortions``: add y-type distortions with amplitude y_distortions
     - ``t_e_sz``: electron temperature t_e_sz for relativistic corrections in keV
     - ``mu_distortions``: add mu-type distortions with amplitude mu_distortions
     - ``A_eg_CO``: add extragalactic CO signal with amplitude A_eg_CO
     - ``maps_coord``: coordinates of the output maps. Default celestial coordinates
-
-    Returns:
-       2d array (n_freq, npix) containing the skies for each freqs
     """
+    
+    # Safe default handling for models list
+    if models is None:
+        models = ["c1", "d2", "s1", "a1", "f1"]
+    
+    # Handle CIB override params
+    user_beta_cib = None
+    user_t_cib = None
+    if cib_params:
+        user_beta_cib = cib_params.get('beta')
+        user_t_cib = cib_params.get('T')
 
-    sky = pysm3.Sky(nside=nside, preset_strings=models, output_unit="MJy/sr")
+    if models:
+        sky = pysm3.Sky(nside=nside, preset_strings=models, output_unit="MJy/sr")
 
     npix = hp.nside2npix(nside)
     m = np.zeros((len(freqs), npix))
@@ -178,19 +246,22 @@ def get_sky(
     for ifreq, freq in enumerate(freqs):
         if models:
             m[ifreq] += sky.get_emission(freq * u.GHz)[0].value
+        
         if add_cmb_monopole_and_dipole:
             m[ifreq] += monopole_and_dipole_CMB(
                 freq, T_CMB_K, BETA_SUN, DIPOLE_DIRECTION, nside,
             )
+            
         if add_cib_monopole_and_dipole:
             m[ifreq] += monopole_and_dipole_CIB(
                 freq,
-                A_CIB,
-                SPECTRAL_INDEX_CIB,
-                T_CIB_K,
                 BETA_SUN,
                 DIPOLE_DIRECTION,
                 nside,
+                acib=A_cib,      # None unless overridden by user
+                betacib=user_beta_cib,
+                tcib=user_t_cib,
+                model=cib_model
             )
 
         if fwhm_deg > 0.0:
