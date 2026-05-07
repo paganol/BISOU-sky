@@ -14,7 +14,7 @@ It includes:
 
 ```
 
-git clone [https://github.com/paganol/BISOU-sky.git](https://github.com/paganol/BISOU-sky.git)
+git clone https://github.com/paganol/BISOU-sky.git
 cd BISOU-sky
 pip install -e .
 pip install zodipy  # Required for Zodiacal light emission
@@ -58,9 +58,9 @@ m.shape # (130, 196608)
 
 - ``fwhm_deg``: Gaussian smoothing in deg (default: 1 degree)
 
-- ``add_cmb_monopole_and_dipole``: add CMB monopole and dipole
+- ``add_cmb_monopole_and_dipole``: add CMB monopole and dipole, boolean
 
-- ``add_cib_monopole_and_dipole``: add CIB monopole and dipole
+- ``add_cib_monopole_and_dipole``: add CIB monopole and dipole, boolean
 
 - ``cib_model``: CIB model name ('fixsen', 'abitbol', 'gispert')
 
@@ -76,7 +76,7 @@ m.shape # (130, 196608)
 
 - ``A_eg_CO``: add extragalactic CO signal with amplitude A_eg_CO
 
-- ``add_zodi``: add zodiacal light emission using ZodiPy (default: False)
+- ``add_zodi``: add zodiacal light emission using ZodiPy (boolean, default: False)
 
 - ``zodi_model_name``: ZodiPy model name (e.g., 'dirbe', 'planck18'). Default 'dirbe'
 
